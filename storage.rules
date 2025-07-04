@@ -1,0 +1,41 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Face images storage
+    match /faces/{faceId}/{allPaths=**} {
+      // Allow read for all (needed for face recognition)
+      allow read: if true;
+      
+      // Allow write for all (since we don't have auth yet)
+      // In production, should require authentication
+      allow write: if request.resource.size < 5 * 1024 * 1024 && // Max 5MB
+                      request.resource.contentType.matches('image/.*');
+    }
+    
+    // Attendance images storage (optional)
+    match /attendance/{attendanceId}/{allPaths=**} {
+      // Allow read for all
+      allow read: if true;
+      
+      // Allow write for all (since we don't have auth yet)
+      allow write: if request.resource.size < 2 * 1024 * 1024 && // Max 2MB
+                      request.resource.contentType.matches('image/.*');
+    }
+    
+    // Processed images storage (for image processing feature)
+    match /processed/{imageId}/{allPaths=**} {
+      // Allow read for all
+      allow read: if true;
+      
+      // Allow write for all
+      allow write: if request.resource.size < 10 * 1024 * 1024 && // Max 10MB
+                      request.resource.contentType.matches('image/.*');
+    }
+    
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

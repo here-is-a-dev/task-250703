@@ -38,6 +38,48 @@ header p {
     color: #666;
 }
 
+/* Navigation */
+.navbar {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+    padding: 20px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.nav-btn {
+    padding: 12px 24px;
+    background: #f8f9fa;
+    color: #666;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-btn:hover {
+    background: #e9ecef;
+    color: #333;
+}
+
+.nav-btn.active {
+    background: #ff6b35;
+    color: white;
+    border-color: #ff6b35;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
 main {
     background: #ffffff;
     padding: 30px;
@@ -45,8 +87,125 @@ main {
     margin: 0 auto;
 }
 
+.camera-section {
+    margin-bottom: 30px;
+}
+
 .upload-section {
     margin-bottom: 30px;
+}
+
+.camera-container {
+    border: 2px solid #ff6b35;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    background-color: #fafafa;
+    position: relative;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.camera-placeholder {
+    text-align: center;
+}
+
+.camera-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    color: #ff6b35;
+}
+
+#video {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 6px;
+}
+
+#canvas {
+    max-width: 100%;
+    border-radius: 6px;
+    border: 2px solid #ff6b35;
+}
+
+#resultCanvas {
+    max-width: 100%;
+    border-radius: 6px;
+    border: 2px solid #ff6b35;
+}
+
+.face-info {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 2px solid #ff6b35;
+    border-radius: 6px;
+    text-align: left;
+}
+
+.face-info h4 {
+    color: #ff6b35;
+    margin-bottom: 10px;
+}
+
+.face-info p {
+    margin: 5px 0;
+    color: #333;
+}
+
+/* Attendance Section */
+.attendance-section {
+    margin-top: 30px;
+    padding: 20px;
+    border: 2px solid #ff6b35;
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+.attendance-list {
+    max-height: 300px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.attendance-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #28a745;
+}
+
+.attendance-item.unknown {
+    border-left-color: #ff6b35;
+}
+
+.attendance-time {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* Real-time Detection */
+.camera-container {
+    position: relative;
+}
+
+#overlayCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 10;
 }
 
 .upload-area {
@@ -221,6 +380,16 @@ main {
         width: 100%;
     }
 
+    .navbar {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .nav-btn {
+        width: 100%;
+        text-align: center;
+    }
+
     header h1 {
         font-size: 2rem;
     }
@@ -239,5 +408,13 @@ main {
 
     .upload-icon {
         font-size: 2rem;
+    }
+
+    .camera-container {
+        min-height: 250px;
+    }
+
+    #video {
+        max-height: 300px;
     }
 }

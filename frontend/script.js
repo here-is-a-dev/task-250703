@@ -3,26 +3,58 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
     ? 'http://localhost:5000'
     : '/api'; // Use relative URL for production deployment
 
-// DOM Elements
+// DOM Elements - Navigation
+const imageProcessingTab = document.getElementById('imageProcessingTab');
+const faceRecognitionTab = document.getElementById('faceRecognitionTab');
+const imageProcessingSection = document.getElementById('imageProcessingSection');
+const faceRecognitionSection = document.getElementById('faceRecognitionSection');
+
+// DOM Elements - Image Processing
 const uploadArea = document.getElementById('uploadArea');
 const imageInput = document.getElementById('imageInput');
 const processType = document.getElementById('processType');
 const processBtn = document.getElementById('processBtn');
-const resultsSection = document.getElementById('resultsSection');
 const originalImage = document.getElementById('originalImage');
 const processedImage = document.getElementById('processedImage');
 const downloadBtn = document.getElementById('downloadBtn');
-const loading = document.getElementById('loading');
 
+// DOM Elements - Face Recognition
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const overlayCanvas = document.getElementById('overlayCanvas');
+const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+const startCameraBtn = document.getElementById('startCameraBtn');
+const stopCameraBtn = document.getElementById('stopCameraBtn');
+const registerBtn = document.getElementById('registerBtn');
+const capturedImage = document.getElementById('capturedImage');
+const faceInfo = document.getElementById('faceInfo');
+const attendanceList = document.getElementById('attendanceList');
+const clearAttendanceBtn = document.getElementById('clearAttendanceBtn');
+
+// Common Elements
+const resultsSection = document.getElementById('resultsSection');
+const loading = document.getElementById('loading');
+const loadingText = document.getElementById('loadingText');
+
+// State Variables
 let selectedFile = null;
 let processedImageData = null;
+let stream = null;
+let currentTab = 'imageProcessing';
 let permissionGranted = false;
+let isDetecting = false;
+let detectionInterval = null;
+let currentFaceData = null;
 
 // Check if running in Android WebView
 const isAndroidWebView = /(Android.*wv\)|ImageProcessingApp)/.test(navigator.userAgent);
 const isAndroid = /Android/.test(navigator.userAgent);
 
-// Event Listeners
+// Event Listeners - Navigation
+imageProcessingTab.addEventListener('click', () => switchTab('imageProcessing'));
+faceRecognitionTab.addEventListener('click', () => switchTab('faceRecognition'));
+
+// Event Listeners - Image Processing
 uploadArea.addEventListener('click', handleUploadAreaClick);
 uploadArea.addEventListener('dragover', handleDragOver);
 uploadArea.addEventListener('dragleave', handleDragLeave);
@@ -30,6 +62,400 @@ uploadArea.addEventListener('drop', handleDrop);
 imageInput.addEventListener('change', handleFileSelect);
 processBtn.addEventListener('click', processImage);
 downloadBtn.addEventListener('click', downloadProcessedImage);
+
+// Event Listeners - Face Recognition
+startCameraBtn.addEventListener('click', startRealTimeDetection);
+stopCameraBtn.addEventListener('click', stopRealTimeDetection);
+registerBtn.addEventListener('click', registerCurrentFace);
+clearAttendanceBtn.addEventListener('click', clearAttendance);
+
+// Tab Switching
+function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+    if (tabName === 'imageProcessing') {
+        imageProcessingTab.classList.add('active');
+        imageProcessingSection.classList.add('active');
+        currentTab = 'imageProcessing';
+
+        // Reset results section for image processing
+        resetResultsSection();
+        document.getElementById('originalImageTitle').textContent = 'Original Image';
+        document.getElementById('processedImageTitle').textContent = 'Processed Image';
+
+    } else if (tabName === 'faceRecognition') {
+        faceRecognitionTab.classList.add('active');
+        faceRecognitionSection.classList.add('active');
+        currentTab = 'faceRecognition';
+
+        // Reset results section for face recognition
+        resetResultsSection();
+        document.getElementById('originalImageTitle').textContent = 'Captured Image';
+        document.getElementById('processedImageTitle').textContent = 'Face Detection Result';
+    }
+}
+
+function resetResultsSection() {
+    resultsSection.style.display = 'none';
+    originalImage.style.display = 'none';
+    processedImage.style.display = 'none';
+    capturedImage.style.display = 'none';
+    resultCanvas.style.display = 'none';
+    faceInfo.style.display = 'none';
+    downloadBtn.style.display = 'none';
+}
+
+// Check API Health
+async function checkAPIHealth() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/`);
+        if (response.ok) {
+            console.log('API is healthy');
+            return true;
+        }
+    } catch (error) {
+        console.warn('API health check failed:', error);
+    }
+    return false;
+}
+
+// ===== FIREBASE FUNCTIONS =====
+
+// Initialize Firebase functions
+function initFirebase() {
+    // Firebase is already initialized in HTML
+    console.log('Firebase initialized successfully');
+}
+
+// Save attendance to Firestore
+async function saveAttendance(name, confidence, timestamp) {
+    try {
+        const { addDoc, collection } = await import("https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js");
+
+        await addDoc(collection(window.firebaseDb, 'attendance'), {
+            name: name,
+            confidence: confidence,
+            timestamp: timestamp,
+            date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+            createdAt: new Date()
+        });
+
+        console.log('Attendance saved to Firestore');
+    } catch (error) {
+        console.error('Error saving attendance:', error);
+    }
+}
+
+// Save registered face to Firestore
+async function saveRegisteredFace(name, faceData) {
+    try {
+        const { addDoc, collection } = await import("https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js");
+
+        await addDoc(collection(window.firebaseDb, 'registered_faces'), {
+            name: name,
+            faceData: faceData,
+            registeredAt: new Date(),
+            isActive: true
+        });
+
+        console.log('Face registered to Firestore');
+    } catch (error) {
+        console.error('Error saving registered face:', error);
+    }
+}
+
+// ===== REAL-TIME FACE DETECTION =====
+
+// Start Real-time Detection
+async function startRealTimeDetection() {
+    try {
+        loadingText.textContent = 'Starting camera...';
+        loading.style.display = 'block';
+
+        // Request camera permission
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: 'user'
+            }
+        });
+
+        video.srcObject = stream;
+        video.style.display = 'block';
+        overlayCanvas.style.display = 'block';
+        cameraPlaceholder.style.display = 'none';
+
+        // Setup overlay canvas
+        video.onloadedmetadata = () => {
+            overlayCanvas.width = video.videoWidth;
+            overlayCanvas.height = video.videoHeight;
+            overlayCanvas.style.width = video.offsetWidth + 'px';
+            overlayCanvas.style.height = video.offsetHeight + 'px';
+        };
+
+        startCameraBtn.style.display = 'none';
+        stopCameraBtn.style.display = 'inline-block';
+        stopCameraBtn.disabled = false;
+
+        isDetecting = true;
+        startDetectionLoop();
+
+        loading.style.display = 'none';
+
+    } catch (error) {
+        console.error('Error starting camera:', error);
+        loading.style.display = 'none';
+        alert('Failed to start camera. Please check permissions.');
+    }
+}
+
+// Stop Real-time Detection
+function stopRealTimeDetection() {
+    isDetecting = false;
+
+    if (detectionInterval) {
+        clearInterval(detectionInterval);
+        detectionInterval = null;
+    }
+
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+
+    video.style.display = 'none';
+    overlayCanvas.style.display = 'none';
+    cameraPlaceholder.style.display = 'block';
+
+    startCameraBtn.style.display = 'inline-block';
+    stopCameraBtn.style.display = 'none';
+    registerBtn.disabled = true;
+    currentFaceData = null;
+}
+
+// Detection Loop
+function startDetectionLoop() {
+    detectionInterval = setInterval(async () => {
+        if (!isDetecting || !video.videoWidth) return;
+
+        try {
+            // Capture current frame
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            // Convert to blob and send to backend
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
+
+                const formData = new FormData();
+                formData.append('image', blob, 'frame.jpg');
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/detect-faces`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            drawRealTimeDetections(result);
+
+                            // Auto-attendance for known faces
+                            result.faces.forEach(face => {
+                                if (face.is_known && face.confidence > 0.7) {
+                                    addAttendanceRecord(face.name, face.confidence);
+                                }
+                            });
+
+                            // Enable register button if unknown face detected
+                            const unknownFaces = result.faces.filter(f => !f.is_known);
+                            if (unknownFaces.length > 0) {
+                                currentFaceData = result;
+                                registerBtn.disabled = false;
+                            } else {
+                                registerBtn.disabled = true;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Detection error:', error);
+                }
+            }, 'image/jpeg', 0.8);
+
+        } catch (error) {
+            console.error('Frame capture error:', error);
+        }
+    }, 1000); // Detect every 1 second
+}
+
+// Draw Real-time Detections
+function drawRealTimeDetections(apiResult) {
+    const overlayCtx = overlayCanvas.getContext('2d');
+
+    // Clear previous drawings
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+    // Draw face detections
+    apiResult.faces.forEach((face) => {
+        const { top, right, bottom, left } = face.location;
+        const width = right - left;
+        const height = bottom - top;
+
+        // Draw bounding box
+        overlayCtx.strokeStyle = face.is_known ? '#28a745' : '#ff6b35';
+        overlayCtx.lineWidth = 3;
+        overlayCtx.strokeRect(left, top, width, height);
+
+        // Draw face label
+        overlayCtx.fillStyle = face.is_known ? '#28a745' : '#ff6b35';
+        overlayCtx.font = 'bold 16px Arial';
+        const label = face.is_known ?
+            `${face.name} (${(face.confidence * 100).toFixed(1)}%)` :
+            `Unknown Face`;
+
+        // Background for text
+        const textMetrics = overlayCtx.measureText(label);
+        overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        overlayCtx.fillRect(left, top - 25, textMetrics.width + 10, 20);
+
+        // Text
+        overlayCtx.fillStyle = 'white';
+        overlayCtx.fillText(label, left + 5, top - 8);
+    });
+}
+
+// Add Attendance Record
+function addAttendanceRecord(name, confidence) {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString();
+    const dateString = now.toLocaleDateString();
+
+    // Check if already recorded in last 5 minutes
+    const recentAttendance = document.querySelectorAll('.attendance-item');
+    for (let item of recentAttendance) {
+        const itemName = item.querySelector('.attendance-name').textContent;
+        const itemTime = item.querySelector('.attendance-time').textContent;
+        const itemDate = itemTime.split(' ')[0];
+
+        if (itemName === name && itemDate === dateString) {
+            const recordTime = new Date(itemDate + ' ' + itemTime.split(' ')[1]);
+            const timeDiff = (now - recordTime) / (1000 * 60); // minutes
+
+            if (timeDiff < 5) {
+                return; // Skip if recorded within 5 minutes
+            }
+        }
+    }
+
+    // Create attendance item
+    const attendanceItem = document.createElement('div');
+    attendanceItem.className = 'attendance-item';
+    attendanceItem.innerHTML = `
+        <div>
+            <div class="attendance-name">${name}</div>
+            <div class="attendance-confidence">Confidence: ${(confidence * 100).toFixed(1)}%</div>
+        </div>
+        <div class="attendance-time">${dateString} ${timeString}</div>
+    `;
+
+    // Add to list
+    if (attendanceList.children[0].textContent === 'No attendance records yet') {
+        attendanceList.innerHTML = '';
+    }
+
+    attendanceList.insertBefore(attendanceItem, attendanceList.firstChild);
+
+    // Save to Firebase
+    saveAttendance(name, confidence, now);
+
+    console.log(`Attendance recorded for ${name} at ${timeString}`);
+}
+
+// Register Current Face
+async function registerCurrentFace() {
+    if (!currentFaceData) {
+        alert('No face data available for registration');
+        return;
+    }
+
+    const name = prompt('Enter name for the detected face:');
+    if (!name || !name.trim()) {
+        return;
+    }
+
+    try {
+        loadingText.textContent = 'Registering face...';
+        loading.style.display = 'block';
+
+        // Capture current frame
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+
+        // Convert to blob
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                loading.style.display = 'none';
+                alert('Failed to capture image for registration');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', blob, 'register.jpg');
+            formData.append('name', name.trim());
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/register-face`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        alert(`Face registered successfully for ${name}!`);
+
+                        // Save to Firebase
+                        await saveRegisteredFace(name.trim(), currentFaceData);
+
+                        registerBtn.disabled = true;
+                        currentFaceData = null;
+                    } else {
+                        throw new Error(result.error || 'Registration failed');
+                    }
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                alert('Error registering face: ' + error.message);
+            }
+
+            loading.style.display = 'none';
+        }, 'image/jpeg', 0.8);
+
+    } catch (error) {
+        console.error('Error in registration process:', error);
+        loading.style.display = 'none';
+        alert('Error in registration process: ' + error.message);
+    }
+}
+
+// Clear Attendance
+function clearAttendance() {
+    if (confirm('Are you sure you want to clear all attendance records?')) {
+        attendanceList.innerHTML = '<p>No attendance records yet</p>';
+    }
+}
+
+// ===== IMAGE PROCESSING FUNCTIONS =====
 
 // Handle upload area click with permission check
 function handleUploadAreaClick() {
@@ -58,12 +484,180 @@ function handleDragLeave(e) {
 function handleDrop(e) {
     e.preventDefault();
     uploadArea.classList.remove('dragover');
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0 && files[0].type.startsWith('image/')) {
         handleFile(files[0]);
     }
 }
+
+// File Selection Handler for Image Processing
+function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+        handleFile(file);
+    }
+}
+
+// File Processing for Image Processing
+function handleFile(file) {
+    selectedFile = file;
+
+    // Display preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        originalImage.src = e.target.result;
+        originalImage.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+
+    // Update UI
+    uploadArea.innerHTML = `
+        <div class="upload-content">
+            <div class="upload-icon">✅</div>
+            <p>File selected: ${file.name}</p>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+                Click to select a different image
+            </p>
+        </div>
+    `;
+
+    processBtn.disabled = false;
+}
+
+// Image Processing
+async function processImage() {
+    if (!selectedFile) {
+        alert('Please select an image first');
+        return;
+    }
+
+    // Show loading
+    loadingText.textContent = 'Processing image...';
+    loading.style.display = 'block';
+    resultsSection.style.display = 'none';
+    processBtn.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('image', selectedFile);
+        formData.append('type', processType.value);
+
+        const response = await fetch(`${API_BASE_URL}/process-image`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Display processed image
+            processedImage.src = result.processed_image;
+            processedImage.style.display = 'block';
+            processedImageData = result.processed_image;
+            downloadBtn.style.display = 'block';
+
+            // Show results
+            resultsSection.style.display = 'block';
+            loading.style.display = 'none';
+        } else {
+            throw new Error(result.error || 'Processing failed');
+        }
+
+    } catch (error) {
+        console.error('Error processing image:', error);
+        alert(`Error processing image: ${error.message}`);
+        loading.style.display = 'none';
+    } finally {
+        processBtn.disabled = false;
+    }
+}
+
+// Download Processed Image
+function downloadProcessedImage() {
+    if (!processedImageData) {
+        alert('No processed image to download');
+        return;
+    }
+
+    // Create download link
+    const link = document.createElement('a');
+    link.href = processedImageData;
+    link.download = `processed_${processType.value}_${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Show Register Dialog
+function showRegisterDialog() {
+    const name = prompt('Enter name for the new face:');
+    if (name && name.trim()) {
+        registerFace(name.trim());
+    }
+}
+
+// Register Face
+async function registerFace(name) {
+    if (!capturedImageData && !imageInput.files[0]) {
+        alert('Please capture a photo or upload an image first');
+        return;
+    }
+
+    try {
+        loadingText.textContent = 'Registering face...';
+        loading.style.display = 'block';
+
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('name', name);
+
+        if (capturedImageData) {
+            // Convert base64 to blob
+            const response = await fetch(capturedImageData);
+            const blob = await response.blob();
+            formData.append('image', blob, 'register.jpg');
+        } else {
+            // Use uploaded file
+            formData.append('image', imageInput.files[0]);
+        }
+
+        // Send to backend
+        const apiResponse = await fetch(`${API_BASE_URL}/register-face`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!apiResponse.ok) {
+            throw new Error(`HTTP error! status: ${apiResponse.status}`);
+        }
+
+        const result = await apiResponse.json();
+
+        if (result.success) {
+            alert(`Face registered successfully for ${name}!`);
+            // Re-detect faces to update the display
+            detectFaces();
+        } else {
+            throw new Error(result.error || 'Face registration failed');
+        }
+
+        loading.style.display = 'none';
+
+    } catch (error) {
+        console.error('Error registering face:', error);
+        loading.style.display = 'none';
+        alert('Error registering face: ' + error.message);
+    }
+}
+
+// ===== FACE RECOGNITION FUNCTIONS =====
+// Note: Face Recognition now only supports real-time camera detection
+// File upload is removed as per requirements
 
 // Storage Permission Request (for Android WebView)
 async function requestStoragePermission() {
@@ -152,126 +746,19 @@ function hidePermissionDialog() {
     }
 }
 
-// File Selection Handler
-function handleFileSelect(e) {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-        handleFile(file);
-    }
-}
-
-// File Processing
-function handleFile(file) {
-    selectedFile = file;
-    
-    // Display preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        originalImage.src = e.target.result;
-        originalImage.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-    
-    // Update UI
-    uploadArea.innerHTML = `
-        <div class="upload-content">
-            <div class="upload-icon">✅</div>
-            <p>File selected: ${file.name}</p>
-            <p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-                Click to select a different image
-            </p>
-        </div>
-    `;
-    
-    processBtn.disabled = false;
-}
-
-// Image Processing
-async function processImage() {
-    if (!selectedFile) {
-        alert('Please select an image first');
-        return;
-    }
-    
-    // Show loading
-    loading.style.display = 'block';
-    resultsSection.style.display = 'none';
-    processBtn.disabled = true;
-    
-    try {
-        const formData = new FormData();
-        formData.append('image', selectedFile);
-        formData.append('type', processType.value);
-        
-        const response = await fetch(`${API_BASE_URL}/process-image`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Display processed image
-            processedImage.src = result.processed_image;
-            processedImageData = result.processed_image;
-            
-            // Show results
-            resultsSection.style.display = 'block';
-            loading.style.display = 'none';
-        } else {
-            throw new Error(result.error || 'Processing failed');
-        }
-        
-    } catch (error) {
-        console.error('Error processing image:', error);
-        alert(`Error processing image: ${error.message}`);
-        loading.style.display = 'none';
-    } finally {
-        processBtn.disabled = false;
-    }
-}
-
-// Download Processed Image
-function downloadProcessedImage() {
-    if (!processedImageData) {
-        alert('No processed image to download');
-        return;
-    }
-    
-    // Create download link
-    const link = document.createElement('a');
-    link.href = processedImageData;
-    link.download = `processed_${processType.value}_${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-// API Health Check
-async function checkAPIHealth() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/`);
-        if (response.ok) {
-            console.log('API is healthy');
-            return true;
-        }
-    } catch (error) {
-        console.warn('API health check failed:', error);
-    }
-    return false;
-}
-
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    checkAPIHealth();
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Image Processing & Face Recognition App initialized');
+
+    // Initialize Firebase
+    initFirebase();
+
+    // Check API health
+    await checkAPIHealth();
 
     // Show Android-specific instructions if detected
     if (isAndroidWebView || isAndroid) {
-        console.log('Android WebView detected - Enhanced file upload support enabled');
+        console.log('Android WebView detected - Enhanced support enabled');
 
         // Show permission notice for Android devices
         const permissionNotice = document.getElementById('permissionNotice');
@@ -279,15 +766,10 @@ document.addEventListener('DOMContentLoaded', () => {
             permissionNotice.style.display = 'block';
         }
 
-        // Add Android-specific styling or instructions if needed
-        const header = document.querySelector('header p');
-        if (header) {
-            header.textContent = 'Upload an image and apply processing filters (Android WebView)';
-        }
-    }
-
-    // Pre-request permission on Android for better UX
-    if (isAndroidWebView) {
+        // Pre-request permission on Android for better UX
         requestStoragePermission();
     }
+
+    // Initialize with Image Processing tab
+    switchTab('imageProcessing');
 });
