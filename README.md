@@ -6,7 +6,7 @@ A modern web application for image processing with Python Flask backend and vani
 
 - **Image Upload**: Drag & drop or click to upload images
 - **Real-time Processing**: Apply filters instantly
-- **Multiple Filters**: Blur, Sharpen, Edge Detection, Grayscale, Sepia, Brightness, Contrast
+- **Multiple Filters**: Grayscale, Blur, Sharpen, Edge Detection (4 reliable filters)
 - **Download Results**: Save processed images
 - **Responsive Design**: Works on desktop and mobile
 - **Clean UI**: White background with orange accents, no gradients
@@ -105,13 +105,16 @@ Response:
 
 ## 🎨 Available Filters
 
-- **blur**: Apply Gaussian blur
-- **sharpen**: Enhance image sharpness
-- **edge**: Edge detection filter
-- **grayscale**: Convert to grayscale
-- **sepia**: Apply sepia tone
-- **brightness**: Increase brightness
-- **contrast**: Enhance contrast
+- **grayscale**: Convert to grayscale (luminance-based)
+- **blur**: Apply Gaussian blur effect
+- **sharpen**: Enhance image sharpness using convolution
+- **edge**: Edge detection filter using Sobel operator
+
+### 🗑️ Removed Filters
+The following filters were removed due to implementation issues:
+- ~~**sepia**: Apply sepia tone~~ (removed - causing state pollution)
+- ~~**brightness**: Increase brightness~~ (removed - producing grayscale output)
+- ~~**contrast**: Enhance contrast~~ (removed - producing grayscale output)
 
 ## 🌐 Deployment Options
 

@@ -256,46 +256,8 @@ function processImageOffline(imageData, filterType) {
                         console.log('✅ Grayscale filter applied');
                         break;
 
-                    case 'sepia':
-                        console.log('🎨 Applying sepia filter...');
-                        for (let i = 0; i < data.length; i += 4) {
-                            const r = data[i];
-                            const g = data[i + 1];
-                            const b = data[i + 2];
-
-                            // Sepia transformation matrix
-                            const newR = Math.min(255, Math.round((r * 0.393) + (g * 0.769) + (b * 0.189)));
-                            const newG = Math.min(255, Math.round((r * 0.349) + (g * 0.686) + (b * 0.168)));
-                            const newB = Math.min(255, Math.round((r * 0.272) + (g * 0.534) + (b * 0.131)));
-
-                            data[i] = newR;
-                            data[i + 1] = newG;
-                            data[i + 2] = newB;
-                        }
-                        console.log('✅ Sepia filter applied');
-                        break;
-
-                    case 'brightness':
-                        console.log('🎨 Applying brightness filter...');
-                        const brightnessFactor = 1.5; // More noticeable brightness increase
-                        for (let i = 0; i < data.length; i += 4) {
-                            data[i] = Math.min(255, Math.round(data[i] * brightnessFactor));
-                            data[i + 1] = Math.min(255, Math.round(data[i + 1] * brightnessFactor));
-                            data[i + 2] = Math.min(255, Math.round(data[i + 2] * brightnessFactor));
-                        }
-                        console.log('✅ Brightness filter applied');
-                        break;
-
-                    case 'contrast':
-                        console.log('🎨 Applying contrast filter...');
-                        const contrastFactor = 2.0; // More noticeable contrast increase
-                        for (let i = 0; i < data.length; i += 4) {
-                            data[i] = Math.min(255, Math.max(0, Math.round(contrastFactor * (data[i] - 128) + 128)));
-                            data[i + 1] = Math.min(255, Math.max(0, Math.round(contrastFactor * (data[i + 1] - 128) + 128)));
-                            data[i + 2] = Math.min(255, Math.max(0, Math.round(contrastFactor * (data[i + 2] - 128) + 128)));
-                        }
-                        console.log('✅ Contrast filter applied');
-                        break;
+                    // Removed problematic filters: sepia, brightness, contrast
+                    // These filters were causing state pollution and producing incorrect results
 
                     case 'blur':
                         // Simple box blur implementation
@@ -350,8 +312,9 @@ function processImageOffline(imageData, filterType) {
                         break;
 
                     default:
-                        console.warn(`Unknown filter: ${filterType}, applying grayscale`);
-                        // Default to grayscale
+                        console.warn(`⚠️ Unknown filter: ${filterType}. Available filters: grayscale, blur, sharpen, edge`);
+                        console.log('🔄 Applying grayscale as fallback');
+                        // Default to grayscale for unknown filters
                         for (let i = 0; i < data.length; i += 4) {
                             const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
                             data[i] = gray;
@@ -595,6 +558,11 @@ async function checkAPIHealth() {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    // Log simplified mode
+    console.log('🎨 Image Processing App - Simplified Mode');
+    console.log('✅ Available filters: Grayscale, Blur, Sharpen, Edge Detection');
+    console.log('❌ Removed filters: Sepia, Brightness, Contrast (were causing issues)');
+
     // Check backend status on load
     checkAPIHealth();
 
