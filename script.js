@@ -206,75 +206,186 @@ function handleFile(file) {
 
 // JavaScript-based image processing for offline mode
 function processImageOffline(imageData, filterType) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
 
         img.onload = function() {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
+            try {
+                canvas.width = img.width;
+                canvas.height = img.height;
 
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
+                // Clear canvas first
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Apply filter based on type
-            switch(filterType) {
-                case 'grayscale':
-                    for (let i = 0; i < data.length; i += 4) {
-                        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                        data[i] = gray;     // Red
-                        data[i + 1] = gray; // Green
-                        data[i + 2] = gray; // Blue
-                    }
-                    break;
+                // Draw original image
+                ctx.drawImage(img, 0, 0);
 
-                case 'sepia':
-                    for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
+                // Get fresh image data
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
 
-                        data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189));
-                        data[i + 1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168));
-                        data[i + 2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131));
-                    }
-                    break;
+                console.log(`Applying ${filterType} filter to ${canvas.width}x${canvas.height} image`);
 
-                case 'brightness':
-                    for (let i = 0; i < data.length; i += 4) {
-                        data[i] = Math.min(255, data[i] * 1.3);     // Red
-                        data[i + 1] = Math.min(255, data[i + 1] * 1.3); // Green
-                        data[i + 2] = Math.min(255, data[i + 2] * 1.3); // Blue
-                    }
-                    break;
+                // Apply filter based on type
+                switch(filterType) {
+                    case 'grayscale':
+                        for (let i = 0; i < data.length; i += 4) {
+                            const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
+                            data[i] = gray;     // Red
+                            data[i + 1] = gray; // Green
+                            data[i + 2] = gray; // Blue
+                            // Alpha channel (data[i + 3]) remains unchanged
+                        }
+                        break;
 
-                case 'contrast':
-                    const factor = 1.5;
-                    for (let i = 0; i < data.length; i += 4) {
-                        data[i] = Math.min(255, Math.max(0, factor * (data[i] - 128) + 128));
-                        data[i + 1] = Math.min(255, Math.max(0, factor * (data[i + 1] - 128) + 128));
-                        data[i + 2] = Math.min(255, Math.max(0, factor * (data[i + 2] - 128) + 128));
-                    }
-                    break;
+                    case 'sepia':
+                        for (let i = 0; i < data.length; i += 4) {
+                            const r = data[i];
+                            const g = data[i + 1];
+                            const b = data[i + 2];
 
-                default:
-                    // Default to grayscale
-                    for (let i = 0; i < data.length; i += 4) {
-                        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                        data[i] = gray;
-                        data[i + 1] = gray;
-                        data[i + 2] = gray;
-                    }
+                            data[i] = Math.min(255, Math.round((r * 0.393) + (g * 0.769) + (b * 0.189)));
+                            data[i + 1] = Math.min(255, Math.round((r * 0.349) + (g * 0.686) + (b * 0.168)));
+                            data[i + 2] = Math.min(255, Math.round((r * 0.272) + (g * 0.534) + (b * 0.131)));
+                        }
+                        break;
+
+                    case 'brightness':
+                        const brightnessFactor = 1.3;
+                        for (let i = 0; i < data.length; i += 4) {
+                            data[i] = Math.min(255, Math.round(data[i] * brightnessFactor));
+                            data[i + 1] = Math.min(255, Math.round(data[i + 1] * brightnessFactor));
+                            data[i + 2] = Math.min(255, Math.round(data[i + 2] * brightnessFactor));
+                        }
+                        break;
+
+                    case 'contrast':
+                        const contrastFactor = 1.5;
+                        for (let i = 0; i < data.length; i += 4) {
+                            data[i] = Math.min(255, Math.max(0, Math.round(contrastFactor * (data[i] - 128) + 128)));
+                            data[i + 1] = Math.min(255, Math.max(0, Math.round(contrastFactor * (data[i + 1] - 128) + 128)));
+                            data[i + 2] = Math.min(255, Math.max(0, Math.round(contrastFactor * (data[i + 2] - 128) + 128)));
+                        }
+                        break;
+
+                    case 'blur':
+                        // Simple box blur implementation
+                        const blurRadius = 2;
+                        const originalData = new Uint8ClampedArray(data);
+
+                        for (let y = 0; y < canvas.height; y++) {
+                            for (let x = 0; x < canvas.width; x++) {
+                                let r = 0, g = 0, b = 0, count = 0;
+
+                                for (let dy = -blurRadius; dy <= blurRadius; dy++) {
+                                    for (let dx = -blurRadius; dx <= blurRadius; dx++) {
+                                        const nx = x + dx;
+                                        const ny = y + dy;
+
+                                        if (nx >= 0 && nx < canvas.width && ny >= 0 && ny < canvas.height) {
+                                            const idx = (ny * canvas.width + nx) * 4;
+                                            r += originalData[idx];
+                                            g += originalData[idx + 1];
+                                            b += originalData[idx + 2];
+                                            count++;
+                                        }
+                                    }
+                                }
+
+                                const idx = (y * canvas.width + x) * 4;
+                                data[idx] = Math.round(r / count);
+                                data[idx + 1] = Math.round(g / count);
+                                data[idx + 2] = Math.round(b / count);
+                            }
+                        }
+                        break;
+
+                    case 'sharpen':
+                        // Sharpen filter using convolution
+                        const sharpenKernel = [
+                            0, -1, 0,
+                            -1, 5, -1,
+                            0, -1, 0
+                        ];
+                        applyConvolution(data, canvas.width, canvas.height, sharpenKernel, 3);
+                        break;
+
+                    case 'edge':
+                        // Edge detection using Sobel operator
+                        const edgeKernel = [
+                            -1, -1, -1,
+                            -1, 8, -1,
+                            -1, -1, -1
+                        ];
+                        applyConvolution(data, canvas.width, canvas.height, edgeKernel, 3);
+                        break;
+
+                    default:
+                        console.warn(`Unknown filter: ${filterType}, applying grayscale`);
+                        // Default to grayscale
+                        for (let i = 0; i < data.length; i += 4) {
+                            const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
+                            data[i] = gray;
+                            data[i + 1] = gray;
+                            data[i + 2] = gray;
+                        }
+                }
+
+                // Put processed data back to canvas
+                ctx.putImageData(imageData, 0, 0);
+
+                // Convert to data URL
+                const result = canvas.toDataURL('image/png', 0.9);
+                console.log(`✅ ${filterType} filter applied successfully`);
+                resolve(result);
+
+            } catch (error) {
+                console.error(`❌ Error applying ${filterType} filter:`, error);
+                reject(error);
             }
+        };
 
-            ctx.putImageData(imageData, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
+        img.onerror = function() {
+            reject(new Error('Failed to load image for processing'));
         };
 
         img.src = imageData;
     });
+}
+
+// Helper function for convolution filters
+function applyConvolution(data, width, height, kernel, kernelSize) {
+    const originalData = new Uint8ClampedArray(data);
+    const half = Math.floor(kernelSize / 2);
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            let r = 0, g = 0, b = 0;
+
+            for (let ky = 0; ky < kernelSize; ky++) {
+                for (let kx = 0; kx < kernelSize; kx++) {
+                    const nx = x + kx - half;
+                    const ny = y + ky - half;
+
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        const idx = (ny * width + nx) * 4;
+                        const weight = kernel[ky * kernelSize + kx];
+
+                        r += originalData[idx] * weight;
+                        g += originalData[idx + 1] * weight;
+                        b += originalData[idx + 2] * weight;
+                    }
+                }
+            }
+
+            const idx = (y * width + x) * 4;
+            data[idx] = Math.min(255, Math.max(0, Math.round(r)));
+            data[idx + 1] = Math.min(255, Math.max(0, Math.round(g)));
+            data[idx + 2] = Math.min(255, Math.max(0, Math.round(b)));
+        }
+    }
 }
 
 // Image Processing with backend fallback
@@ -290,30 +401,50 @@ async function processImage() {
     processBtn.disabled = true;
 
     try {
-        // Try backend first
+        // Try backend first (with timeout)
         if (!OFFLINE_MODE) {
-            const formData = new FormData();
-            formData.append('image', selectedFile);
-            formData.append('type', processType.value);
+            try {
+                console.log(`🔄 Trying backend: ${API_BASE_URL}/process-image`);
 
-            const response = await fetch(`${API_BASE_URL}/process-image`, {
-                method: 'POST',
-                body: formData
-            });
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+                formData.append('type', processType.value);
 
-            if (response.ok) {
-                const result = await response.json();
+                // Add timeout to prevent hanging
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-                if (result.success) {
-                    // Display processed image
-                    processedImage.src = result.processed_image;
-                    processedImageData = result.processed_image;
+                const response = await fetch(`${API_BASE_URL}/process-image`, {
+                    method: 'POST',
+                    body: formData,
+                    signal: controller.signal
+                });
 
-                    // Show results
-                    resultsSection.style.display = 'block';
-                    loading.style.display = 'none';
-                    return;
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const result = await response.json();
+
+                    if (result.success) {
+                        console.log('✅ Backend processing successful');
+                        // Display processed image
+                        processedImage.src = result.processed_image;
+                        processedImageData = result.processed_image;
+
+                        // Show results
+                        resultsSection.style.display = 'block';
+                        loading.style.display = 'none';
+                        return;
+                    } else {
+                        throw new Error(result.error || 'Backend processing failed');
+                    }
+                } else {
+                    throw new Error(`Backend returned ${response.status}: ${response.statusText}`);
                 }
+
+            } catch (backendError) {
+                console.warn('⚠️ Backend failed:', backendError.message);
+                // Don't throw here, fall through to offline mode
             }
         }
 
@@ -396,22 +527,50 @@ function downloadProcessedImage() {
     document.body.removeChild(link);
 }
 
-// API Health Check
+// API Health Check with status update
 async function checkAPIHealth() {
+    const statusElement = document.getElementById('backend-status');
+
     try {
-        const response = await fetch(`${API_BASE_URL}/`);
+        console.log(`🔍 Checking backend health: ${API_BASE_URL}/`);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+        const response = await fetch(`${API_BASE_URL}/`, {
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
         if (response.ok) {
-            console.log('API is healthy');
+            const data = await response.json();
+            console.log('✅ Backend is healthy:', data);
+
+            if (statusElement) {
+                statusElement.innerHTML = '<span style="color: #4CAF50;">✅ Online (Backend available)</span>';
+            }
+
+            OFFLINE_MODE = false;
             return true;
+        } else {
+            throw new Error(`Backend returned ${response.status}`);
         }
     } catch (error) {
-        console.warn('API health check failed:', error);
+        console.warn('⚠️ Backend health check failed:', error.message);
+
+        if (statusElement) {
+            statusElement.innerHTML = '<span style="color: #ff9800;">⚠️ Offline (JavaScript processing)</span>';
+        }
+
+        OFFLINE_MODE = true;
     }
     return false;
 }
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    // Check backend status on load
     checkAPIHealth();
 
     // Show Android-specific instructions if detected

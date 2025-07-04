@@ -17,11 +17,11 @@
             <div class="upload-section">
                 <!-- GitHub Pages Demo Notice -->
                 <div style="background: #e3f2fd; border: 2px solid #2196f3; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-                    <h4 style="color: #1976d2; margin: 0 0 10px 0;">🌐 GitHub Pages Demo</h4>
+                    <h4 style="color: #1976d2; margin: 0 0 10px 0;">🌐 Image Processing Demo</h4>
                     <p style="margin: 0; font-size: 14px; color: #0d47a1;">
-                        This is a demo running on GitHub Pages with offline JavaScript image processing.
-                        For full backend functionality, deploy the backend to a cloud service.
-                        <br><strong>Available filters:</strong> Grayscale, Sepia, Brightness, Contrast
+                        This app tries backend processing first, then falls back to JavaScript processing if backend is unavailable.
+                        <br><strong>All 7 filters available:</strong> Grayscale, Sepia, Brightness, Contrast, Blur, Sharpen, Edge Detection
+                        <br><strong>Backend:</strong> <span id="backend-status">Checking...</span>
                     </p>
                 </div>
 
@@ -49,13 +49,13 @@
                 <div class="controls">
                     <label for="processType">Filter Type:</label>
                     <select id="processType">
-                        <option value="grayscale">Grayscale ✓</option>
-                        <option value="sepia">Sepia ✓</option>
-                        <option value="brightness">Brightness ✓</option>
-                        <option value="contrast">Contrast ✓</option>
-                        <option value="blur" disabled>Blur (Backend only)</option>
-                        <option value="sharpen" disabled>Sharpen (Backend only)</option>
-                        <option value="edge" disabled>Edge Detection (Backend only)</option>
+                        <option value="grayscale">Grayscale</option>
+                        <option value="sepia">Sepia</option>
+                        <option value="brightness">Brightness</option>
+                        <option value="contrast">Contrast</option>
+                        <option value="blur">Blur</option>
+                        <option value="sharpen">Sharpen</option>
+                        <option value="edge">Edge Detection</option>
                     </select>
                     <button id="processBtn" disabled>Process Image</button>
                 </div>
