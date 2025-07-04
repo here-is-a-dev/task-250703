@@ -634,17 +634,41 @@ async function processImage() {
     processBtn.disabled = true;
 
     try {
+        // First, wake up the backend if it's sleeping
+        loadingText.textContent = 'Connecting to server...';
+
+        // Check if backend is awake
+        try {
+            const healthCheck = await fetch(`${API_BASE_URL}/`, {
+                method: 'GET',
+                timeout: 10000
+            });
+
+            if (!healthCheck.ok) {
+                loadingText.textContent = 'Waking up server, please wait...';
+                // Wait a bit for server to wake up
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+        } catch (healthError) {
+            console.log('Health check failed, proceeding anyway:', healthError);
+        }
+
+        loadingText.textContent = 'Processing image...';
+
         const formData = new FormData();
         formData.append('image', selectedFile);
         formData.append('type', processType.value);
 
         const response = await fetch(`${API_BASE_URL}/process-image`, {
             method: 'POST',
-            body: formData
+            body: formData,
+            // Add timeout for better error handling
+            signal: AbortSignal.timeout(30000) // 30 second timeout
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText || 'Server error'}`);
         }
 
         const result = await response.json();
@@ -665,7 +689,19 @@ async function processImage() {
 
     } catch (error) {
         console.error('Error processing image:', error);
-        alert(`Error processing image: ${error.message}`);
+
+        let errorMessage = 'Error processing image: ';
+        if (error.name === 'TimeoutError') {
+            errorMessage += 'Request timed out. Server may be sleeping, please try again.';
+        } else if (error.message.includes('404')) {
+            errorMessage += 'API endpoint not found. Backend may be down.';
+        } else if (error.message.includes('Failed to fetch')) {
+            errorMessage += 'Cannot connect to server. Please check your internet connection.';
+        } else {
+            errorMessage += error.message;
+        }
+
+        alert(errorMessage);
         loading.style.display = 'none';
     } finally {
         processBtn.disabled = false;
