@@ -239,6 +239,9 @@ function processImageOffline(imageData, filterType) {
                 console.log(`🎨 Applying ${filterType} filter to fresh ${canvas.width}x${canvas.height} image`);
                 console.log(`📊 Original pixel data length: ${data.length}`);
 
+                // Log first pixel before processing
+                console.log(`📍 First pixel BEFORE ${filterType}: R=${data[0]}, G=${data[1]}, B=${data[2]}, A=${data[3]}`);
+
                 // Apply filter based on type
                 switch(filterType) {
                     case 'grayscale':
@@ -260,29 +263,38 @@ function processImageOffline(imageData, filterType) {
                             const g = data[i + 1];
                             const b = data[i + 2];
 
-                            data[i] = Math.min(255, Math.round((r * 0.393) + (g * 0.769) + (b * 0.189)));
-                            data[i + 1] = Math.min(255, Math.round((r * 0.349) + (g * 0.686) + (b * 0.168)));
-                            data[i + 2] = Math.min(255, Math.round((r * 0.272) + (g * 0.534) + (b * 0.131)));
+                            // Sepia transformation matrix
+                            const newR = Math.min(255, Math.round((r * 0.393) + (g * 0.769) + (b * 0.189)));
+                            const newG = Math.min(255, Math.round((r * 0.349) + (g * 0.686) + (b * 0.168)));
+                            const newB = Math.min(255, Math.round((r * 0.272) + (g * 0.534) + (b * 0.131)));
+
+                            data[i] = newR;
+                            data[i + 1] = newG;
+                            data[i + 2] = newB;
                         }
                         console.log('✅ Sepia filter applied');
                         break;
 
                     case 'brightness':
-                        const brightnessFactor = 1.3;
+                        console.log('🎨 Applying brightness filter...');
+                        const brightnessFactor = 1.5; // More noticeable brightness increase
                         for (let i = 0; i < data.length; i += 4) {
                             data[i] = Math.min(255, Math.round(data[i] * brightnessFactor));
                             data[i + 1] = Math.min(255, Math.round(data[i + 1] * brightnessFactor));
                             data[i + 2] = Math.min(255, Math.round(data[i + 2] * brightnessFactor));
                         }
+                        console.log('✅ Brightness filter applied');
                         break;
 
                     case 'contrast':
-                        const contrastFactor = 1.5;
+                        console.log('🎨 Applying contrast filter...');
+                        const contrastFactor = 2.0; // More noticeable contrast increase
                         for (let i = 0; i < data.length; i += 4) {
                             data[i] = Math.min(255, Math.max(0, Math.round(contrastFactor * (data[i] - 128) + 128)));
                             data[i + 1] = Math.min(255, Math.max(0, Math.round(contrastFactor * (data[i + 1] - 128) + 128)));
                             data[i + 2] = Math.min(255, Math.max(0, Math.round(contrastFactor * (data[i + 2] - 128) + 128)));
                         }
+                        console.log('✅ Contrast filter applied');
                         break;
 
                     case 'blur':
@@ -347,6 +359,9 @@ function processImageOffline(imageData, filterType) {
                             data[i + 2] = gray;
                         }
                 }
+
+                // Log first pixel after processing
+                console.log(`📍 First pixel AFTER ${filterType}: R=${data[0]}, G=${data[1]}, B=${data[2]}, A=${data[3]}`);
 
                 // Put processed data back to canvas
                 ctx.putImageData(imageData, 0, 0);
