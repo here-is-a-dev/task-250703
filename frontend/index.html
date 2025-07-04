@@ -44,9 +44,11 @@
 
         <!-- Navigation -->
         <nav class="navbar">
-            <button id="imageProcessingTab" class="nav-btn active">📷 Image Processing</button>
-            <button id="faceRecognitionTab" class="nav-btn">👤 Face Recognition</button>
+            <button id="imageProcessingTab" class="nav-btn active" onclick="switchTab('imageProcessing')">📷 Image Processing</button>
+            <button id="faceRecognitionTab" class="nav-btn" onclick="switchTab('faceRecognition')">👤 Face Recognition</button>
         </nav>
+
+
 
         <main>
             <!-- Image Processing Section -->
@@ -145,6 +147,35 @@
         </main>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Load script with error handling -->
+    <script>
+        // Immediate tab switching function (before main script loads)
+        window.switchTab = function(tabName) {
+            console.log('Switching to tab:', tabName);
+
+            // Remove active class from all
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Add active class to selected
+            const tab = document.getElementById(tabName + 'Tab');
+            const section = document.getElementById(tabName + 'Section');
+
+            if (tab) tab.classList.add('active');
+            if (section) section.classList.add('active');
+
+            // Log tab switch
+            console.log('Tab switched to:', tabName);
+        };
+
+        // Initialize default tab immediately
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting default tab');
+            window.switchTab('imageProcessing');
+        });
+    </script>
+
+    <!-- Main script -->
+    <script src="script.js" onerror="console.error('Failed to load script.js')"></script>
 </body>
 </html>

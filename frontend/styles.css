@@ -208,6 +208,8 @@ main {
     z-index: 10;
 }
 
+
+
 .upload-area {
     border: 2px dashed #ff6b35;
     border-radius: 8px;
@@ -417,4 +419,6 @@ main {
     #video {
         max-height: 300px;
     }
+
+
 }

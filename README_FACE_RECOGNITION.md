@@ -37,6 +37,8 @@
 - ✅ **Security Rules**: Bảo vệ dữ liệu cá nhân và chấm công
 - ✅ **Real-time Updates**: Đồng bộ dữ liệu realtime
 
+
+
 ## Cài đặt và Chạy
 
 ### Local Development
@@ -82,6 +84,8 @@ firebase deploy --only hosting
 URL: `https://task-250703.web.app`
 
 **Chi tiết deploy:** Xem `deploy-render.md`
+
+
 
 ## Cách sử dụng
 

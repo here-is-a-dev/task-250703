@@ -4,37 +4,74 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
     : 'https://face-recognition-backend.onrender.com'; // Update with your Render.com URL
 
 // DOM Elements - Navigation
-const imageProcessingTab = document.getElementById('imageProcessingTab');
-const faceRecognitionTab = document.getElementById('faceRecognitionTab');
-const imageProcessingSection = document.getElementById('imageProcessingSection');
-const faceRecognitionSection = document.getElementById('faceRecognitionSection');
+let imageProcessingTab, faceRecognitionTab, imageProcessingSection, faceRecognitionSection;
 
-// DOM Elements - Image Processing
-const uploadArea = document.getElementById('uploadArea');
-const imageInput = document.getElementById('imageInput');
-const processType = document.getElementById('processType');
-const processBtn = document.getElementById('processBtn');
-const originalImage = document.getElementById('originalImage');
-const processedImage = document.getElementById('processedImage');
-const downloadBtn = document.getElementById('downloadBtn');
+// Initialize DOM elements safely
+function initializeDOM() {
+    try {
+        // Navigation elements
+        imageProcessingTab = document.getElementById('imageProcessingTab');
+        faceRecognitionTab = document.getElementById('faceRecognitionTab');
+        imageProcessingSection = document.getElementById('imageProcessingSection');
+        faceRecognitionSection = document.getElementById('faceRecognitionSection');
 
-// DOM Elements - Face Recognition
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const overlayCanvas = document.getElementById('overlayCanvas');
-const cameraPlaceholder = document.getElementById('cameraPlaceholder');
-const startCameraBtn = document.getElementById('startCameraBtn');
-const stopCameraBtn = document.getElementById('stopCameraBtn');
-const registerBtn = document.getElementById('registerBtn');
-const capturedImage = document.getElementById('capturedImage');
-const faceInfo = document.getElementById('faceInfo');
-const attendanceList = document.getElementById('attendanceList');
-const clearAttendanceBtn = document.getElementById('clearAttendanceBtn');
+        console.log('DOM Elements Check:');
+        console.log('imageProcessingTab:', !!imageProcessingTab);
+        console.log('faceRecognitionTab:', !!faceRecognitionTab);
+        console.log('imageProcessingSection:', !!imageProcessingSection);
+        console.log('faceRecognitionSection:', !!faceRecognitionSection);
 
-// Common Elements
-const resultsSection = document.getElementById('resultsSection');
-const loading = document.getElementById('loading');
-const loadingText = document.getElementById('loadingText');
+        if (!imageProcessingTab || !faceRecognitionTab) {
+            console.error('❌ Navigation elements not found!');
+            return false;
+        }
+
+        // Image Processing elements
+        uploadArea = document.getElementById('uploadArea');
+        imageInput = document.getElementById('imageInput');
+        processType = document.getElementById('processType');
+        processBtn = document.getElementById('processBtn');
+        originalImage = document.getElementById('originalImage');
+        processedImage = document.getElementById('processedImage');
+        downloadBtn = document.getElementById('downloadBtn');
+
+        // Face Recognition elements
+        video = document.getElementById('video');
+        canvas = document.getElementById('canvas');
+        overlayCanvas = document.getElementById('overlayCanvas');
+        cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        startCameraBtn = document.getElementById('startCameraBtn');
+        stopCameraBtn = document.getElementById('stopCameraBtn');
+        registerBtn = document.getElementById('registerBtn');
+        capturedImage = document.getElementById('capturedImage');
+        faceInfo = document.getElementById('faceInfo');
+        attendanceList = document.getElementById('attendanceList');
+        clearAttendanceBtn = document.getElementById('clearAttendanceBtn');
+
+        // Common elements
+        resultsSection = document.getElementById('resultsSection');
+        loading = document.getElementById('loading');
+        loadingText = document.getElementById('loadingText');
+
+
+
+        console.log('All DOM elements initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('❌ Error initializing DOM:', error);
+        return false;
+    }
+}
+
+// DOM Elements - Image Processing (will be initialized in initializeDOM)
+let uploadArea, imageInput, processType, processBtn, originalImage, processedImage, downloadBtn;
+
+// DOM Elements - Face Recognition (will be initialized in initializeDOM)
+let video, canvas, overlayCanvas, cameraPlaceholder, startCameraBtn, stopCameraBtn, registerBtn;
+let capturedImage, faceInfo, attendanceList, clearAttendanceBtn;
+
+// Common Elements (will be initialized in initializeDOM)
+let resultsSection, loading, loadingText;
 
 // State Variables
 let selectedFile = null;
@@ -46,66 +83,124 @@ let isDetecting = false;
 let detectionInterval = null;
 let currentFaceData = null;
 
+
+
 // Check if running in Android WebView
 const isAndroidWebView = /(Android.*wv\)|ImageProcessingApp)/.test(navigator.userAgent);
 const isAndroid = /Android/.test(navigator.userAgent);
 
-// Event Listeners - Navigation
-imageProcessingTab.addEventListener('click', () => switchTab('imageProcessing'));
-faceRecognitionTab.addEventListener('click', () => switchTab('faceRecognition'));
+// Event Listeners - Will be initialized after DOM is ready
+function initializeEventListeners() {
+    try {
+        console.log('Initializing event listeners...');
 
-// Event Listeners - Image Processing
-uploadArea.addEventListener('click', handleUploadAreaClick);
-uploadArea.addEventListener('dragover', handleDragOver);
-uploadArea.addEventListener('dragleave', handleDragLeave);
-uploadArea.addEventListener('drop', handleDrop);
-imageInput.addEventListener('change', handleFileSelect);
-processBtn.addEventListener('click', processImage);
-downloadBtn.addEventListener('click', downloadProcessedImage);
+        // Navigation
+        if (imageProcessingTab && faceRecognitionTab) {
+            imageProcessingTab.addEventListener('click', () => switchTab('imageProcessing'));
+            faceRecognitionTab.addEventListener('click', () => switchTab('faceRecognition'));
+            console.log('✅ Navigation listeners added');
+        }
 
-// Event Listeners - Face Recognition
-startCameraBtn.addEventListener('click', startRealTimeDetection);
-stopCameraBtn.addEventListener('click', stopRealTimeDetection);
-registerBtn.addEventListener('click', registerCurrentFace);
-clearAttendanceBtn.addEventListener('click', clearAttendance);
+        // Image Processing
+        if (uploadArea && imageInput && processBtn && downloadBtn) {
+            uploadArea.addEventListener('click', handleUploadAreaClick);
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+            imageInput.addEventListener('change', handleFileSelect);
+            processBtn.addEventListener('click', processImage);
+            downloadBtn.addEventListener('click', downloadProcessedImage);
+            console.log('✅ Image processing listeners added');
+        }
 
-// Tab Switching
-function switchTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        // Face Recognition
+        if (startCameraBtn && stopCameraBtn && registerBtn && clearAttendanceBtn) {
+            startCameraBtn.addEventListener('click', startRealTimeDetection);
+            stopCameraBtn.addEventListener('click', stopRealTimeDetection);
+            registerBtn.addEventListener('click', registerCurrentFace);
+            clearAttendanceBtn.addEventListener('click', clearAttendance);
+            console.log('✅ Face recognition listeners added');
+        }
 
-    if (tabName === 'imageProcessing') {
-        imageProcessingTab.classList.add('active');
-        imageProcessingSection.classList.add('active');
-        currentTab = 'imageProcessing';
-
-        // Reset results section for image processing
-        resetResultsSection();
-        document.getElementById('originalImageTitle').textContent = 'Original Image';
-        document.getElementById('processedImageTitle').textContent = 'Processed Image';
-
-    } else if (tabName === 'faceRecognition') {
-        faceRecognitionTab.classList.add('active');
-        faceRecognitionSection.classList.add('active');
-        currentTab = 'faceRecognition';
-
-        // Reset results section for face recognition
-        resetResultsSection();
-        document.getElementById('originalImageTitle').textContent = 'Captured Image';
-        document.getElementById('processedImageTitle').textContent = 'Face Detection Result';
+        return true;
+    } catch (error) {
+        console.error('❌ Error initializing event listeners:', error);
+        return false;
     }
 }
 
+// Tab Switching - Make it global for onclick access
+window.switchTab = function(tabName) {
+    try {
+        console.log(`Switching to tab: ${tabName}`);
+
+        // Update tab buttons
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+        if (tabName === 'imageProcessing') {
+            const tab = document.getElementById('imageProcessingTab');
+            const section = document.getElementById('imageProcessingSection');
+
+            if (tab && section) {
+                tab.classList.add('active');
+                section.classList.add('active');
+                currentTab = 'imageProcessing';
+
+                // Reset results section for image processing
+                resetResultsSection();
+                const originalTitle = document.getElementById('originalImageTitle');
+                const processedTitle = document.getElementById('processedImageTitle');
+                if (originalTitle) originalTitle.textContent = 'Original Image';
+                if (processedTitle) processedTitle.textContent = 'Processed Image';
+
+                console.log('✅ Switched to Image Processing tab');
+            } else {
+                console.error('❌ Image Processing tab elements not found');
+            }
+
+        } else if (tabName === 'faceRecognition') {
+            const tab = document.getElementById('faceRecognitionTab');
+            const section = document.getElementById('faceRecognitionSection');
+
+            if (tab && section) {
+                tab.classList.add('active');
+                section.classList.add('active');
+                currentTab = 'faceRecognition';
+
+                // Reset results section for face recognition
+                resetResultsSection();
+                const originalTitle = document.getElementById('originalImageTitle');
+                const processedTitle = document.getElementById('processedImageTitle');
+                if (originalTitle) originalTitle.textContent = 'Captured Image';
+                if (processedTitle) processedTitle.textContent = 'Face Detection Result';
+
+                console.log('✅ Switched to Face Recognition tab');
+            } else {
+                console.error('❌ Face Recognition tab elements not found');
+            }
+        }
+
+
+    } catch (error) {
+        console.error('❌ Error switching tabs:', error);
+    }
+};
+
 function resetResultsSection() {
-    resultsSection.style.display = 'none';
-    originalImage.style.display = 'none';
-    processedImage.style.display = 'none';
-    capturedImage.style.display = 'none';
-    resultCanvas.style.display = 'none';
-    faceInfo.style.display = 'none';
-    downloadBtn.style.display = 'none';
+    try {
+        if (resultsSection) resultsSection.style.display = 'none';
+        if (originalImage) originalImage.style.display = 'none';
+        if (processedImage) processedImage.style.display = 'none';
+        if (capturedImage) capturedImage.style.display = 'none';
+        if (faceInfo) faceInfo.style.display = 'none';
+        if (downloadBtn) downloadBtn.style.display = 'none';
+    } catch (error) {
+        console.error('Error resetting results section:', error);
+    }
 }
+
+
 
 // Check API Health
 async function checkAPIHealth() {
@@ -748,28 +843,81 @@ function hidePermissionDialog() {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Image Processing & Face Recognition App initialized');
+    console.log('🚀 Image Processing & Face Recognition App starting...');
 
-    // Initialize Firebase
-    initFirebase();
-
-    // Check API health
-    await checkAPIHealth();
-
-    // Show Android-specific instructions if detected
-    if (isAndroidWebView || isAndroid) {
-        console.log('Android WebView detected - Enhanced support enabled');
-
-        // Show permission notice for Android devices
-        const permissionNotice = document.getElementById('permissionNotice');
-        if (permissionNotice) {
-            permissionNotice.style.display = 'block';
+    try {
+        // Step 1: Initialize DOM elements
+        console.log('Step 1: Initializing DOM elements...');
+        if (!initializeDOM()) {
+            console.error('❌ Failed to initialize DOM elements');
+            showErrorMessage('Failed to load application. Please refresh the page.');
+            return;
         }
 
-        // Pre-request permission on Android for better UX
-        requestStoragePermission();
-    }
+        // Step 2: Initialize event listeners
+        console.log('Step 2: Initializing event listeners...');
+        if (!initializeEventListeners()) {
+            console.error('❌ Failed to initialize event listeners');
+            showErrorMessage('Failed to initialize controls. Please refresh the page.');
+            return;
+        }
 
-    // Initialize with Image Processing tab
-    switchTab('imageProcessing');
+        // Step 3: Initialize Firebase
+        console.log('Step 3: Initializing Firebase...');
+        initFirebase();
+
+        // Step 4: Check API health
+        console.log('Step 4: Checking API health...');
+        await checkAPIHealth();
+
+        // Step 5: Show Android-specific instructions if detected
+        if (isAndroidWebView || isAndroid) {
+            console.log('Android WebView detected - Enhanced support enabled');
+
+            // Show permission notice for Android devices
+            const permissionNotice = document.getElementById('permissionNotice');
+            if (permissionNotice) {
+                permissionNotice.style.display = 'block';
+            }
+
+            // Pre-request permission on Android for better UX
+            requestStoragePermission();
+        }
+
+        // Step 6: Initialize with Image Processing tab
+        console.log('Step 6: Setting default tab...');
+        switchTab('imageProcessing');
+
+        console.log('✅ App initialized successfully!');
+
+    } catch (error) {
+        console.error('❌ Critical error during initialization:', error);
+        showErrorMessage('Critical error occurred. Please refresh the page.');
+    }
 });
+
+// Show error message to user
+function showErrorMessage(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ff4444;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        z-index: 9999;
+        font-family: Arial, sans-serif;
+    `;
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (errorDiv.parentNode) {
+            errorDiv.parentNode.removeChild(errorDiv);
+        }
+    }, 5000);
+}
