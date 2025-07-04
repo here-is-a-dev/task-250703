@@ -1,7 +1,7 @@
 // Configuration - Auto-detect API base URL
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:5000'
-    : '/api'; // Use relative URL for production deployment
+    : 'https://face-recognition-backend.onrender.com'; // Update with your Render.com URL
 
 // DOM Elements - Navigation
 const imageProcessingTab = document.getElementById('imageProcessingTab');

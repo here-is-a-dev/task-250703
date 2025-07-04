@@ -39,23 +39,49 @@
 
 ## Cài đặt và Chạy
 
-### Backend
+### Local Development
+
+**Backend:**
 ```bash
 cd task-250703/backend
 pip install -r requirements.txt
 python app.py
 ```
-
 Backend sẽ chạy tại: `http://localhost:5000`
 
-### Frontend
+**Frontend:**
 ```bash
 cd task-250703/frontend
-# Mở file index.html trong browser hoặc serve với HTTP server
 python -m http.server 8000
 ```
-
 Frontend sẽ chạy tại: `http://localhost:8000`
+
+**Quick Start:**
+```bash
+# Test local setup
+test-local.bat
+
+# Start frontend
+start-frontend.bat
+```
+
+### Production Deployment
+
+**Backend (Render.com):**
+1. Push code lên GitHub
+2. Connect với Render.com
+3. Deploy tự động theo `render.yaml`
+4. URL: `https://face-recognition-backend.onrender.com`
+
+**Frontend (Firebase Hosting):**
+```bash
+firebase login
+firebase use task-250703
+firebase deploy --only hosting
+```
+URL: `https://task-250703.web.app`
+
+**Chi tiết deploy:** Xem `deploy-render.md`
 
 ## Cách sử dụng
 
