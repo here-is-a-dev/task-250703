@@ -1,0 +1,32 @@
+{
+  "name": "image-processing-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Image Processing Web Application",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "python -m http.server 8000",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "image-processing",
+    "web-app",
+    "javascript",
+    "html5",
+    "css3"
+  ],
+  "author": "Image Processing App",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/image-processing-app.git"
+  },
+  "homepage": "https://yourusername.github.io/image-processing-app/frontend/",
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processing App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Image Processing Lab</h1>
+            <p>Upload an image and apply processing filters</p>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <div class="permission-notice" id="permissionNotice" style="display: none;">
+                    <div style="background: #fff3cd; border: 2px solid #FF6600; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                        <h4 style="color: #FF6600; margin: 0 0 10px 0;">📱 Android Device Detected</h4>
+                        <p style="margin: 0; font-size: 14px; color: #856404;">
+                            This app requires storage permission to access your device's images.
+                            When you click to select an image, please allow storage access when prompted.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">📷</div>
+                        <p>Click to select an image or drag and drop</p>
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">
+                            Supports: JPG, PNG, GIF, WebP
+                        </p>
+                        <input type="file" id="imageInput" accept="image/*" hidden>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <label for="processType">Filter Type:</label>
+                    <select id="processType">
+                        <option value="grayscale">Grayscale</option>
+                        <option value="blur">Blur</option>
+                        <option value="sharpen">Sharpen</option>
+                        <option value="edge">Edge Detection</option>
+                    </select>
+                    <button id="processBtn" disabled>Process Image</button>
+                </div>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="image-comparison">
+                    <div class="image-container">
+                        <h3>Original Image</h3>
+                        <img id="originalImage" alt="Original">
+                    </div>
+                    <div class="image-container">
+                        <h3>Processed Image</h3>
+                        <img id="processedImage" alt="Processed">
+                        <button id="downloadBtn">Download</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Processing image...</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
