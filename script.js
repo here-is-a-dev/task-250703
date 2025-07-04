@@ -34,6 +34,7 @@ const loading = document.getElementById('loading');
 
 let selectedFile = null;
 let processedImageData = null;
+let originalImageData = null; // Store original image data for consistent processing
 let permissionGranted = false;
 
 // Check if running in Android WebView
@@ -181,12 +182,20 @@ function handleFileSelect(e) {
 // File Processing
 function handleFile(file) {
     selectedFile = file;
-    
-    // Display preview
+
+    // Reset previous processing results
+    processedImageData = null;
+    resultsSection.style.display = 'none';
+
+    // Display preview and store original image data
     const reader = new FileReader();
     reader.onload = (e) => {
+        originalImageData = e.target.result; // Store original for consistent processing
         originalImage.src = e.target.result;
         originalImage.style.display = 'block';
+
+        console.log('✅ Original image stored for processing');
+        console.log('🔄 Previous processing results cleared');
     };
     reader.readAsDataURL(file);
     
@@ -213,24 +222,27 @@ function processImageOffline(imageData, filterType) {
 
         img.onload = function() {
             try {
+                // Set canvas dimensions
                 canvas.width = img.width;
                 canvas.height = img.height;
 
-                // Clear canvas first
+                // Clear canvas completely
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // Draw original image
+                // Draw fresh original image
                 ctx.drawImage(img, 0, 0);
 
-                // Get fresh image data
+                // Get completely fresh image data
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
 
-                console.log(`Applying ${filterType} filter to ${canvas.width}x${canvas.height} image`);
+                console.log(`🎨 Applying ${filterType} filter to fresh ${canvas.width}x${canvas.height} image`);
+                console.log(`📊 Original pixel data length: ${data.length}`);
 
                 // Apply filter based on type
                 switch(filterType) {
                     case 'grayscale':
+                        console.log('🎨 Applying grayscale filter...');
                         for (let i = 0; i < data.length; i += 4) {
                             const gray = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
                             data[i] = gray;     // Red
@@ -238,9 +250,11 @@ function processImageOffline(imageData, filterType) {
                             data[i + 2] = gray; // Blue
                             // Alpha channel (data[i + 3]) remains unchanged
                         }
+                        console.log('✅ Grayscale filter applied');
                         break;
 
                     case 'sepia':
+                        console.log('🎨 Applying sepia filter...');
                         for (let i = 0; i < data.length; i += 4) {
                             const r = data[i];
                             const g = data[i + 1];
@@ -250,6 +264,7 @@ function processImageOffline(imageData, filterType) {
                             data[i + 1] = Math.min(255, Math.round((r * 0.349) + (g * 0.686) + (b * 0.168)));
                             data[i + 2] = Math.min(255, Math.round((r * 0.272) + (g * 0.534) + (b * 0.131)));
                         }
+                        console.log('✅ Sepia filter applied');
                         break;
 
                     case 'brightness':
@@ -390,10 +405,13 @@ function applyConvolution(data, width, height, kernel, kernelSize) {
 
 // Image Processing with backend fallback
 async function processImage() {
-    if (!selectedFile) {
+    if (!selectedFile || !originalImageData) {
         alert('Please select an image first');
         return;
     }
+
+    console.log(`🔄 Processing with filter: ${processType.value}`);
+    console.log(`📷 Using original image data: ${originalImageData.substring(0, 50)}...`);
 
     // Show loading
     loading.style.display = 'block';
@@ -449,31 +467,23 @@ async function processImage() {
         }
 
         // Fallback to offline processing
-        console.log('Using offline image processing...');
+        console.log('🔄 Using offline image processing...');
+        console.log(`📷 Processing original image with ${processType.value} filter`);
         OFFLINE_MODE = true;
 
-        // Convert file to data URL
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                const processedDataUrl = await processImageOffline(e.target.result, processType.value);
+        // Use stored original image data instead of re-reading file
+        const processedDataUrl = await processImageOffline(originalImageData, processType.value);
 
-                // Display processed image
-                processedImage.src = processedDataUrl;
-                processedImageData = processedDataUrl;
+        // Display processed image
+        processedImage.src = processedDataUrl;
+        processedImageData = processedDataUrl;
 
-                // Show results with offline notice
-                resultsSection.style.display = 'block';
-                loading.style.display = 'none';
+        // Show results with offline notice
+        resultsSection.style.display = 'block';
+        loading.style.display = 'none';
 
-                // Show offline mode notice
-                showOfflineNotice();
-
-            } catch (offlineError) {
-                throw new Error('Offline processing failed: ' + offlineError.message);
-            }
-        };
-        reader.readAsDataURL(selectedFile);
+        // Show offline mode notice
+        showOfflineNotice();
 
     } catch (error) {
         console.error('Error processing image:', error);
