@@ -204,14 +204,40 @@ function resetResultsSection() {
 
 // Check API Health
 async function checkAPIHealth() {
+    const statusElement = document.getElementById('backend-status');
+
     try {
-        const response = await fetch(`${API_BASE_URL}/`);
+        if (statusElement) statusElement.textContent = 'Checking...';
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(`${API_BASE_URL}/`, {
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
         if (response.ok) {
-            console.log('API is healthy');
+            const data = await response.json();
+            console.log('API is healthy:', data);
+            if (statusElement) {
+                statusElement.textContent = '✅ Online';
+                statusElement.style.color = '#28a745';
+            }
             return true;
         }
     } catch (error) {
         console.warn('API health check failed:', error);
+        if (statusElement) {
+            if (error.name === 'AbortError') {
+                statusElement.textContent = '😴 Sleeping (will wake up when needed)';
+                statusElement.style.color = '#ffc107';
+            } else {
+                statusElement.textContent = '❌ Offline';
+                statusElement.style.color = '#dc3545';
+            }
+        }
     }
     return false;
 }
@@ -637,20 +663,46 @@ async function processImage() {
         // First, wake up the backend if it's sleeping
         loadingText.textContent = 'Connecting to server...';
 
-        // Check if backend is awake
-        try {
-            const healthCheck = await fetch(`${API_BASE_URL}/`, {
-                method: 'GET',
-                timeout: 10000
-            });
+        // Enhanced backend wake-up logic
+        let backendReady = false;
+        let attempts = 0;
+        const maxAttempts = 3;
 
-            if (!healthCheck.ok) {
-                loadingText.textContent = 'Waking up server, please wait...';
-                // Wait a bit for server to wake up
-                await new Promise(resolve => setTimeout(resolve, 3000));
+        while (!backendReady && attempts < maxAttempts) {
+            attempts++;
+            try {
+                loadingText.textContent = `Checking server status... (${attempts}/${maxAttempts})`;
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+                const healthCheck = await fetch(`${API_BASE_URL}/`, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (healthCheck.ok) {
+                    const response = await healthCheck.json();
+                    if (response.status === 'healthy') {
+                        backendReady = true;
+                        loadingText.textContent = 'Server ready! Processing image...';
+                        break;
+                    }
+                }
+            } catch (healthError) {
+                console.log(`Health check attempt ${attempts} failed:`, healthError);
+
+                if (attempts < maxAttempts) {
+                    loadingText.textContent = `Server sleeping, waking up... (${attempts}/${maxAttempts})`;
+                    // Progressive delay: 5s, 10s, 15s
+                    await new Promise(resolve => setTimeout(resolve, 5000 * attempts));
+                } else {
+                    loadingText.textContent = 'Server may be slow, trying anyway...';
+                    // Continue with processing even if health check fails
+                }
             }
-        } catch (healthError) {
-            console.log('Health check failed, proceeding anyway:', healthError);
         }
 
         loadingText.textContent = 'Processing image...';
@@ -659,12 +711,17 @@ async function processImage() {
         formData.append('image', selectedFile);
         formData.append('type', processType.value);
 
+        // Create abort controller for longer timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
+
         const response = await fetch(`${API_BASE_URL}/process-image`, {
             method: 'POST',
             body: formData,
-            // Add timeout for better error handling
-            signal: AbortSignal.timeout(30000) // 30 second timeout
+            signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -691,14 +748,18 @@ async function processImage() {
         console.error('Error processing image:', error);
 
         let errorMessage = 'Error processing image: ';
-        if (error.name === 'TimeoutError') {
+        if (error.name === 'AbortError') {
+            errorMessage += 'Request timed out after 90 seconds. The server may be overloaded or sleeping. Please try again in a few minutes.';
+        } else if (error.name === 'TimeoutError') {
             errorMessage += 'Request timed out. Server may be sleeping, please try again.';
         } else if (error.message.includes('404')) {
-            errorMessage += 'API endpoint not found. Backend may be down.';
+            errorMessage += 'API endpoint not found. Backend may be down or still starting up. Please wait 30 seconds and try again.';
         } else if (error.message.includes('Failed to fetch')) {
-            errorMessage += 'Cannot connect to server. Please check your internet connection.';
+            errorMessage += 'Cannot connect to server. Please check your internet connection or try again later.';
+        } else if (error.message.includes('500')) {
+            errorMessage += 'Server error occurred. The backend may be overloaded. Please try again.';
         } else {
-            errorMessage += error.message;
+            errorMessage += error.message + '\n\nTip: If server is sleeping, it may take 30-60 seconds to wake up.';
         }
 
         alert(errorMessage);
@@ -905,6 +966,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Step 4: Check API health
         console.log('Step 4: Checking API health...');
         await checkAPIHealth();
+
+        // Step 4.1: Set up periodic health checks
+        setInterval(async () => {
+            await checkAPIHealth();
+        }, 60000); // Check every minute
 
         // Step 5: Show Android-specific instructions if detected
         if (isAndroidWebView || isAndroid) {
