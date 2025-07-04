@@ -1,0 +1,37 @@
+title: Image Processing Web Application
+description: A modern web application for image processing with offline JavaScript capabilities
+url: "https://here-is-a-dev.github.io"
+baseurl: "/task-250703"
+
+# GitHub Pages settings
+plugins:
+  - jekyll-relative-links
+
+# Exclude files from processing
+exclude:
+  - backend/
+  - demo_images/
+  - "*.py"
+  - "*.bat"
+  - "*.md"
+  - README.md
+  - DEPLOYMENT.md
+  - PROJECT_SUMMARY.md
+
+# Include files that start with underscore
+include:
+  - _config.yml
+
+# Markdown settings
+markdown: kramdown
+highlighter: rouge
+
+# Collections
+collections_dir: collections
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default

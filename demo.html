@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processing Demo - GitHub Pages</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+        }
+        .demo-section {
+            border: 2px solid #ff6b35;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .demo-image {
+            max-width: 200px;
+            height: auto;
+            border: 1px solid #ddd;
+            margin: 10px;
+        }
+        .filter-demo {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .warning { background: #fff3cd; color: #856404; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🎨 Image Processing Demo</h1>
+    
+    <div class="demo-section">
+        <h2>📊 System Status</h2>
+        <div id="status-container">
+            <div class="status warning">🔄 Checking system status...</div>
+        </div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>🖼️ Demo Images</h2>
+        <p>Click on any demo image below to test the image processing:</p>
+        
+        <div class="filter-demo">
+            <canvas id="demo-canvas" width="200" height="200" class="demo-image" style="cursor: pointer;"></canvas>
+            <div>
+                <h4>Test Image</h4>
+                <p>Click to process with different filters</p>
+                <select id="demo-filter">
+                    <option value="grayscale">Grayscale</option>
+                    <option value="sepia">Sepia</option>
+                    <option value="brightness">Brightness</option>
+                    <option value="contrast">Contrast</option>
+                </select>
+                <button onclick="processDemoImage()">Process</button>
+            </div>
+        </div>
+        
+        <div id="result-container" style="margin-top: 20px;"></div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>🚀 Try the Full App</h2>
+        <p>Ready to process your own images?</p>
+        <a href="index.html" style="display: inline-block; background: #ff6b35; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            🎯 Open Image Processing App
+        </a>
+    </div>
+
+    <script>
+        // Create demo image
+        function createDemoImage() {
+            const canvas = document.getElementById('demo-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Create colorful pattern
+            for (let x = 0; x < 200; x += 20) {
+                for (let y = 0; y < 200; y += 20) {
+                    const hue = (x + y) % 360;
+                    ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+                    ctx.fillRect(x, y, 20, 20);
+                }
+            }
+            
+            // Add some text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('DEMO', 75, 105);
+        }
+        
+        // Process demo image
+        function processDemoImage() {
+            const canvas = document.getElementById('demo-canvas');
+            const filter = document.getElementById('demo-filter').value;
+            const resultContainer = document.getElementById('result-container');
+            
+            // Create result canvas
+            const resultCanvas = document.createElement('canvas');
+            resultCanvas.width = 200;
+            resultCanvas.height = 200;
+            resultCanvas.className = 'demo-image';
+            const resultCtx = resultCanvas.getContext('2d');
+            
+            // Copy original image
+            resultCtx.drawImage(canvas, 0, 0);
+            
+            // Apply filter
+            const imageData = resultCtx.getImageData(0, 0, 200, 200);
+            const data = imageData.data;
+            
+            switch(filter) {
+                case 'grayscale':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+                        data[i] = gray;
+                        data[i + 1] = gray;
+                        data[i + 2] = gray;
+                    }
+                    break;
+                case 'sepia':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189));
+                        data[i + 1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168));
+                        data[i + 2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131));
+                    }
+                    break;
+                case 'brightness':
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, data[i] * 1.3);
+                        data[i + 1] = Math.min(255, data[i + 1] * 1.3);
+                        data[i + 2] = Math.min(255, data[i + 2] * 1.3);
+                    }
+                    break;
+                case 'contrast':
+                    const factor = 1.5;
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = Math.min(255, Math.max(0, factor * (data[i] - 128) + 128));
+                        data[i + 1] = Math.min(255, Math.max(0, factor * (data[i + 1] - 128) + 128));
+                        data[i + 2] = Math.min(255, Math.max(0, factor * (data[i + 2] - 128) + 128));
+                    }
+                    break;
+            }
+            
+            resultCtx.putImageData(imageData, 0, 0);
+            
+            // Show result
+            resultContainer.innerHTML = `
+                <h4>Result: ${filter.charAt(0).toUpperCase() + filter.slice(1)} Filter</h4>
+                <div style="display: flex; gap: 20px; align-items: center;">
+                    <div>
+                        <p><strong>Original</strong></p>
+                        <canvas width="200" height="200" class="demo-image" id="original-copy"></canvas>
+                    </div>
+                    <div>→</div>
+                    <div>
+                        <p><strong>Processed</strong></p>
+                        ${resultCanvas.outerHTML}
+                    </div>
+                </div>
+            `;
+            
+            // Copy original to comparison
+            const originalCopy = document.getElementById('original-copy');
+            originalCopy.getContext('2d').drawImage(canvas, 0, 0);
+        }
+        
+        // Check system status
+        function checkStatus() {
+            const statusContainer = document.getElementById('status-container');
+            
+            // Check if we're on GitHub Pages
+            const isGitHubPages = window.location.hostname.includes('github.io');
+            
+            let statusHTML = '';
+            
+            if (isGitHubPages) {
+                statusHTML += '<div class="status success">✅ Running on GitHub Pages</div>';
+                statusHTML += '<div class="status warning">⚠️ Offline Mode: JavaScript processing only</div>';
+                statusHTML += '<div class="status warning">🔧 For full features, deploy backend to cloud service</div>';
+            } else {
+                statusHTML += '<div class="status success">✅ Local development environment</div>';
+            }
+            
+            statusHTML += '<div class="status success">✅ JavaScript image processing available</div>';
+            statusHTML += '<div class="status success">✅ Canvas API supported</div>';
+            
+            statusContainer.innerHTML = statusHTML;
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            createDemoImage();
+            checkStatus();
+            
+            // Make demo canvas clickable
+            document.getElementById('demo-canvas').addEventListener('click', processDemoImage);
+        });
+    </script>
+</body>
+</html>
